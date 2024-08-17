@@ -1,4 +1,4 @@
-# 鱼皮前端万用模板
+# 云舒-AI分析平台
 
 > 作者：[程序员鱼皮](https://github.com/liyupi)
 > 仅分享于 [编程导航知识星球](https://yupi.icu)
