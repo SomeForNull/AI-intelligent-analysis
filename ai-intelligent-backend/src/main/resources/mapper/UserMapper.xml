@@ -6,8 +6,6 @@
 <mapper namespace="com.yunshu.aiintelligent.mapper.UserMapper">
     <resultMap id="BaseResultMap" type="com.yunshu.aiintelligent.model.entity.User">
         <id property="id" column="id" jdbcType="BIGINT"/>
-        <result property="unionId" column="unionId" jdbcType="VARCHAR"/>
-        <result property="mpOpenId" column="mpOpenId" jdbcType="VARCHAR"/>
         <result property="userName" column="userName" jdbcType="VARCHAR"/>
         <result property="userAvatar" column="userAvatar" jdbcType="VARCHAR"/>
         <result property="userProfile" column="userProfile" jdbcType="VARCHAR"/>

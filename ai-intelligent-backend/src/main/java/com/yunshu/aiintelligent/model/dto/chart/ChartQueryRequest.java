@@ -13,6 +13,10 @@ import java.io.Serializable;
 public class ChartQueryRequest extends PageRequest implements Serializable {
 
     private Long id;
+    /**
+     * 图标名称
+     */
+    private String name;
 
     /**
      * 分析目标
