@@ -237,23 +237,42 @@ public class ChartController {
         // 校验
         ThrowUtils.throwIf(StringUtils.isBlank(goal), ErrorCode.PARAMS_ERROR, "目标为空");
         ThrowUtils.throwIf(StringUtils.isNotBlank(name) && name.length() > 100, ErrorCode.PARAMS_ERROR, "名称过长");
-
-        // 用户输入
+        User loginUser = userService.getLoginUser(request);
+        // 构造用户输入
         StringBuilder userInput = new StringBuilder();
-        userInput.append("分析需求：\n").append(goal).append("\n");
+        userInput.append("分析需求：").append("\n");
+        // 拼接分析目标
+        String userGoal = goal;
+        if (StringUtils.isNotBlank(chartType)) {
+            userGoal += "，请使用" + chartType;
+        }
+        userInput.append(userGoal).append("\n");
+        userInput.append("原始数据：").append("\n");
         // 压缩后的数据
-        String result = ExcelUtils.excelToCsv(multipartFile);
-        userInput.append("原始数据：：\n").append(result).append("\n");
+        String csvData = ExcelUtils.excelToCsv(multipartFile);
+        userInput.append(csvData).append("\n");
         String aiResult = aiManager.doSyncRequest(INTELLIGENT_ANALYSIS_SYSTEM, userInput.toString(), null);
         String[] aiResults = aiResult.split("【【【【【");
         if(aiResults.length<3){
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "AI生成错误！");
         }
-        String aiChart = aiResults[1];
-        String aiIntelligent= aiResults[2];
+        String genChart = aiResults[1];
+        String genResult= aiResults[2];
+        // 插入到数据库
+        Chart chart = new Chart();
+        chart.setName(name);
+        chart.setGoal(goal);
+        chart.setChartData(csvData);
+        chart.setChartType(chartType);
+        chart.setGenChart(genChart);
+        chart.setGenResult(genResult);
+        chart.setUserId(loginUser.getId());
+        boolean saveResult = chartService.save(chart);
+        ThrowUtils.throwIf(!saveResult, ErrorCode.SYSTEM_ERROR, "图表保存失败");
         BiResponse biResponse = new BiResponse();
-        biResponse.setGenChart(aiChart);
-        biResponse.setGenResult(aiIntelligent);
+        biResponse.setGenChart(genChart);
+        biResponse.setGenResult(genResult);
+        biResponse.setChartId(chart.getId());
         return ResultUtils.success(biResponse);
 //
 //        // 读取到用户上传的 excel 文件，进行一个处理
