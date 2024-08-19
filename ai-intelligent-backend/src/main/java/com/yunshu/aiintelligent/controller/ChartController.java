@@ -1,5 +1,6 @@
 package com.yunshu.aiintelligent.controller;
 
+import cn.hutool.core.io.FileUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.gson.Gson;
@@ -13,6 +14,7 @@ import com.yunshu.aiintelligent.constant.UserConstant;
 import com.yunshu.aiintelligent.exception.BusinessException;
 import com.yunshu.aiintelligent.exception.ThrowUtils;
 import com.yunshu.aiintelligent.manager.AiManager;
+import com.yunshu.aiintelligent.manager.RedisLimiterManager;
 import com.yunshu.aiintelligent.model.dto.chart.*;
 import com.yunshu.aiintelligent.model.entity.Chart;
 import com.yunshu.aiintelligent.model.entity.User;
@@ -30,6 +32,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -47,6 +50,8 @@ public class ChartController {
     private UserService userService;
     @Resource
     private AiManager aiManager;
+    @Resource
+    private RedisLimiterManager redisLimiterManager;
 
     private final static Gson GSON = new Gson();
 
@@ -231,13 +236,26 @@ public class ChartController {
     @PostMapping("/gen")
     public BaseResponse<BiResponse> genChartByAi(@RequestPart("file") MultipartFile multipartFile,
                                                  GenChartByAiRequest genChartByAiRequest, HttpServletRequest request) {
+        //校验用户是否登录
+        User loginUser = userService.getLoginUser(request);
+        if(loginUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "请先登录");
+        }
+        redisLimiterManager.doRateLimit("genChartByAi_"+loginUser.getId());
         String name = genChartByAiRequest.getName();
         String goal = genChartByAiRequest.getGoal();
         String chartType = genChartByAiRequest.getChartType();
         // 校验
         ThrowUtils.throwIf(StringUtils.isBlank(goal), ErrorCode.PARAMS_ERROR, "目标为空");
         ThrowUtils.throwIf(StringUtils.isNotBlank(name) && name.length() > 100, ErrorCode.PARAMS_ERROR, "名称过长");
-        User loginUser = userService.getLoginUser(request);
+        //校验文件大小
+        ThrowUtils.throwIf(multipartFile.getSize() > 1024 * 1024 * 10, ErrorCode.PARAMS_ERROR, "文件过大");
+        //校验文件后缀
+        String originalFilename = multipartFile.getOriginalFilename();
+        String suffix = FileUtil.getSuffix(originalFilename);
+        List<String> validFileSuffix = Arrays.asList("png", "jpg", "jpeg","bmp", "csv", "xls", "xlsx");
+        ThrowUtils.throwIf(!validFileSuffix.contains(suffix), ErrorCode.PARAMS_ERROR, "文件格式不支持");
+
         // 构造用户输入
         StringBuilder userInput = new StringBuilder();
         userInput.append("分析需求：").append("\n");
