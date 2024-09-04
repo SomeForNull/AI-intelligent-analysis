@@ -3,7 +3,7 @@ import {Button, Card, Form, Input, message, Select, Space, Upload} from 'antd';
 import TextArea from 'antd/es/input/TextArea';
 import React, {useState} from 'react';
 import {useForm} from "antd/es/form/Form";
-import {genChartByAiAsyncUsingPost} from "@/services/backend/chartController";
+import {genChartByAiAsyncMqUsingPost, genChartByAiAsyncUsingPost} from "@/services/backend/chartController";
 
 /**
  * 添加图表（异步）页面
@@ -29,7 +29,7 @@ const AddChartAsync: React.FC = () => {
       file: undefined,
     };
     try {
-      const res = await genChartByAiAsyncUsingPost(params, {}, values.file.file.originFileObj);
+      const res = await genChartByAiAsyncMqUsingPost(params, {}, values.file.file.originFileObj);
       if (!res?.data) {
         message.error('分析失败');
       } else {
